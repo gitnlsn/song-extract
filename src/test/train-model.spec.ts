@@ -9,10 +9,11 @@ import * as tf from '@tensorflow/tfjs';
 
 describe('Train Model', () => {
     it('should train the model', async () => {
-        const sampleRate = 1000;
+        const frameLenght = 1000;
+        const fftArraySize = 1 + Math.floor(frameLenght / 2);
 
         const tSet1: TrainInput = {
-            filePath: path.join(__dirname, 'test-assets', 'piano-1-1000.wav'),
+            filePath: path.join(__dirname, 'test-assets', 'piano-1-4000.wav'),
             type: 1
         }
         // const tSet2: TrainInput = {
@@ -20,7 +21,7 @@ describe('Train Model', () => {
         //     type: 'song'
         // }
         const tSet3: TrainInput = {
-            filePath: path.join(__dirname, 'test-assets', 'speech-1-1000.wav'),
+            filePath: path.join(__dirname, 'test-assets', 'speech-1-4000.wav'),
             type: 0
         }
         // const tSet4: TrainInput = {
@@ -28,11 +29,24 @@ describe('Train Model', () => {
         //     type: 'speech'
         // }
 
-        const { data, labels, dataByLabels } = await prepareTrainingData({ trainInputs: [tSet1, tSet3], inputSize: sampleRate });
+        const { data, labels, dataByLabels } = await prepareTrainingData({ 
+            trainInputs: [tSet1, tSet3], 
+            frameLenght
+        });
+
+        console.log("Data labels: ", dataByLabels.map(item => item.label));
 
         console.log("Started training model with: ", data.length, " samples size");
 
-        const model = await trainModel({ data, labels, props: { epochs: 5, batchSize: 8192, inputSize: sampleRate } });
+        const model = await trainModel({ 
+            data, 
+            labels,
+            props: { 
+                epochs: 5, 
+                batchSize: 4096,
+                inputSize: fftArraySize 
+            } 
+        });
 
         for (const dataByLabel of dataByLabels) {
             const trialData = dataByLabel.data.slice(0, 3);
@@ -45,5 +59,5 @@ describe('Train Model', () => {
         }
 
         expect(model).toBeDefined();
-    }, 300000);
+    }, 1000 * 60 * 60);
 });
