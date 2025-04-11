@@ -23,8 +23,7 @@ export async function segmentAudio(filePath: string, props?: { sampleRate?: numb
 
     const segments: AudioSegment[] = [];
     const samplesPerSegment = sampleRate * segmentDuration;
-    const overlapSamples = Math.floor(samplesPerSegment / 2); // 50% overlap
-    const stepSize = samplesPerSegment - overlapSamples; // How much to move forward each iteration
+    const stepSize = Math.min(Math.floor(samplesPerSegment / 100), 100); // How much to move forward each iteration
     const totalSamples = channelData[0].length;
     
     // Process segments with overlap

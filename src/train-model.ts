@@ -1,32 +1,17 @@
 import * as tf from '@tensorflow/tfjs';
 import { AudioSegment } from './interfaces/AudioSegment';
 import { TrainInput } from './interfaces/TrainInput';
+import { Tensor1DInput, Tensor2DInput } from './interfaces/TensorFlowData';
 
-function isInSongInterval(segment: AudioSegment, intervals: TrainInput['songIntervals']): boolean {
-    return intervals.some(interval =>
-        segment.startTime >= interval.start && segment.endTime <= interval.end
-    );
+interface TrainModelProps {
+    data: Tensor2DInput;
+    labels: Tensor1DInput;
+    props?: { epochs?: number, batchSize?: number, inputSize?: number }
 }
 
-export async function trainModel(segments: AudioSegment[], trainInput: TrainInput, props?: { epochs?: number, batchSize?: number, inputSize?: number }): Promise<tf.LayersModel> {
+export async function trainModel({ data, labels, props }: TrainModelProps): Promise<tf.LayersModel> {
     const inputSize = props?.inputSize ?? 1000;
-    // Prepare data and labels
-    const data: number[][] = [];
-    const labels: number[] = [];
-
-    segments.forEach(segment => {
-        // Create a new array with the maximum length
-        const paddedData = new Float32Array(inputSize);
-        // Copy the original data
-        paddedData.set(segment.decoded);
-        // Fill the rest with zeros if needed
-        data.push(Array.from(paddedData));
-
-        // Set label based on whether the segment is within song intervals
-        const isSong = isInSongInterval(segment, trainInput.songIntervals);
-        labels.push(isSong ? 1 : 0);
-    });
-
+    
     // Convert to tensors
     const xs = tf.tensor2d(data);
     const ys = tf.oneHot(tf.tensor1d(labels, 'int32'), 2);
@@ -34,9 +19,7 @@ export async function trainModel(segments: AudioSegment[], trainInput: TrainInpu
     // Create model
     const model = tf.sequential({
         layers: [
-            tf.layers.dense({ inputShape: [inputSize], units: 32, activation: 'relu' }),
-            tf.layers.dense({ units: 100, activation: 'softmax' }),
-            tf.layers.dense({ units: 20, activation: 'softmax' }),
+            tf.layers.dense({ inputShape: [inputSize], units: 32, activation: 'gelu' }),
             tf.layers.dense({ units: 2, activation: 'softmax' }),
         ]
     });
