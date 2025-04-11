@@ -3,20 +3,25 @@ import { AudioSegment } from './interfaces/AudioSegment';
 import { TrainInput } from './interfaces/TrainInput';
 
 function isInSongInterval(segment: AudioSegment, intervals: TrainInput['songIntervals']): boolean {
-    return intervals.some(interval => 
+    return intervals.some(interval =>
         segment.startTime >= interval.start && segment.endTime <= interval.end
     );
 }
 
-export async function trainModel(segments: AudioSegment[], trainInput: TrainInput): Promise<tf.LayersModel> {
+export async function trainModel(segments: AudioSegment[], trainInput: TrainInput, props?: { epochs?: number, batchSize?: number, inputSize?: number }): Promise<tf.LayersModel> {
+    const inputSize = props?.inputSize ?? 1000;
     // Prepare data and labels
     const data: number[][] = [];
     const labels: number[] = [];
 
     segments.forEach(segment => {
-        // Convert Float32Array to regular array (values are already normalized between -1 and 1)
-        data.push(Array.from(segment.decoded));
-        
+        // Create a new array with the maximum length
+        const paddedData = new Float32Array(inputSize);
+        // Copy the original data
+        paddedData.set(segment.decoded);
+        // Fill the rest with zeros if needed
+        data.push(Array.from(paddedData));
+
         // Set label based on whether the segment is within song intervals
         const isSong = isInSongInterval(segment, trainInput.songIntervals);
         labels.push(isSong ? 1 : 0);
@@ -29,8 +34,10 @@ export async function trainModel(segments: AudioSegment[], trainInput: TrainInpu
     // Create model
     const model = tf.sequential({
         layers: [
-            tf.layers.dense({inputShape: [1000], units: 32, activation: 'relu'}),
-            tf.layers.dense({units: 2, activation: 'softmax'}), // Changed to 2 units for binary classification
+            tf.layers.dense({ inputShape: [inputSize], units: 32, activation: 'relu' }),
+            tf.layers.dense({ units: 100, activation: 'softmax' }),
+            tf.layers.dense({ units: 20, activation: 'softmax' }),
+            tf.layers.dense({ units: 2, activation: 'softmax' }),
         ]
     });
 
@@ -43,8 +50,8 @@ export async function trainModel(segments: AudioSegment[], trainInput: TrainInpu
 
     // Train model
     await model.fit(xs, ys, {
-        epochs: 5,
-        batchSize: 32,
+        epochs: props?.epochs ?? 5,
+        batchSize: props?.batchSize ?? 32,
         callbacks: {
             onBatchEnd: (batch, logs) => {
                 console.log('Accuracy', logs?.acc);
