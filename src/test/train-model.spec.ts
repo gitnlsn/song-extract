@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { convertToWav } from '../convert-wav-temp-folder';
-import { segmentAudio } from '../segmentation';
 import { trainModel } from '../train-model';
 import path from 'path';
 import { prepareTrainingData } from '../prepare-training-data';
@@ -13,7 +11,7 @@ describe('Train Model', () => {
         const fftArraySize = 1 + Math.floor(frameLenght / 2);
 
         const tSet1: TrainInput = {
-            filePath: path.join(__dirname, 'test-assets', 'piano-1-4000.wav'),
+            filePath: path.join(__dirname, 'test-assets', 'piano-1-1000.wav'),
             type: 1
         }
         // const tSet2: TrainInput = {
@@ -21,7 +19,7 @@ describe('Train Model', () => {
         //     type: 'song'
         // }
         const tSet3: TrainInput = {
-            filePath: path.join(__dirname, 'test-assets', 'speech-1-4000.wav'),
+            filePath: path.join(__dirname, 'test-assets', 'speech-1-1000.wav'),
             type: 0
         }
         // const tSet4: TrainInput = {
@@ -42,8 +40,8 @@ describe('Train Model', () => {
             data, 
             labels,
             props: { 
-                epochs: 5, 
-                batchSize: 4096,
+                epochs: 500,
+                batchSize: 10000,
                 inputSize: fftArraySize 
             } 
         });
@@ -59,5 +57,5 @@ describe('Train Model', () => {
         }
 
         expect(model).toBeDefined();
-    }, 1000 * 60 * 60);
+    }, 1000 * 60 * 60 * 24);
 });
